@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>釀造日誌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Serif+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1208">
+<style>
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #1a1208;
+  --bg2:       #231a0e;
+  --bg3:       #2e2010;
+  --border:    #4a3520;
+  --amber:     #c8860a;
+  --amber-light: #e8a020;
+  --cream:     #e8d5a3;
+  --cream-dim: #a89060;
+  --text:      #d4b896;
+  --text-dim:  #7a5c3a;
+  --red:       #c0392b;
+  --green:     #5a8a3c;
+  --font-title: 'Playfair Display', serif;
+  --font-body:  'Noto Serif TC', serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.5;
+}
+
+/* ── Layout ───────────────────────────────────────────── */
+#app { max-width: 720px; margin: 0 auto; padding: 0 16px 80px; }
+
+header {
+  padding: 32px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+header h1 {
+  font-family: var(--font-title);
+  font-size: 28px;
+  color: var(--amber-light);
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+header p { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+/* ── Nav ──────────────────────────────────────────────── */
+nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+}
+nav button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 12px 4px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.2s;
+}
+nav button.active, nav button:hover { color: var(--amber); }
+nav button .icon { font-size: 20px; }
+
+/* ── Cards ────────────────────────────────────────────── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.card:hover { border-color: var(--amber); background: var(--bg3); }
+.card-title {
+  font-family: var(--font-title);
+  font-size: 17px;
+  color: var(--cream);
+  font-weight: 600;
+}
+.card-meta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.card-row { display: flex; justify-content: space-between; align-items: center; }
+
+/* ── Status Badge ─────────────────────────────────────── */
+.badge {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.badge-f1      { background: #2a1e08; color: #e8a020; border: 1px solid #4a3010; }
+.badge-f2      { background: #0e1e2a; color: #3ab0e8; border: 1px solid #1a3a50; }
+.badge-done    { background: #0e1e0e; color: #5ac05a; border: 1px solid #1a401a; }
+.badge-failed  { background: #2a0e0e; color: #e85a5a; border: 1px solid #501a1a; }
+
+/* ── Countdown ────────────────────────────────────────── */
+.countdown { font-size: 13px; color: var(--amber); }
+
+/* ── Section title ────────────────────────────────────── */
+.section-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--amber-light);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn {
+  display: inline-block;
+  padding: 9px 20px;
+  border-radius: 6px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary  { background: var(--amber); color: #1a1208; font-weight: 500; }
+.btn-secondary{ background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-danger   { background: var(--red); color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-block { display: block; width: 100%; text-align: center; }
+
+/* ── Forms ────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--amber); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-group select option { background: var(--bg3); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Timeline ─────────────────────────────────────────── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -24px; top: 16px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid var(--bg);
+}
+.timeline-day {
+  font-family: var(--font-title);
+  font-size: 13px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.timeline-meta { font-size: 12px; color: var(--text-dim); }
+
+/* ── Rating Stars ─────────────────────────────────────── */
+.star-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.star-label { font-size: 12px; color: var(--text-dim); width: 60px; }
+.stars { display: flex; gap: 3px; }
+.star {
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--border);
+  transition: color 0.15s;
+  user-select: none;
+}
+.star.on { color: var(--amber); }
+
+/* ── Detail sections ──────────────────────────────────── */
+.detail-section {
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.detail-section-header {
+  background: var(--bg3);
+  padding: 10px 16px;
+  font-family: var(--font-title);
+  font-size: 14px;
+  color: var(--cream-dim);
+  letter-spacing: 0.04em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.detail-section-body { padding: 16px; }
+
+/* ── Recipe grid ──────────────────────────────────────── */
+.recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.recipe-item { }
+.recipe-item .rl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.recipe-item .rv { font-size: 15px; color: var(--cream); margin-top: 1px; }
+
+/* ── Empty state ──────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.empty .icon { font-size: 36px; display: block; margin-bottom: 10px; }
+
+/* ── Divider ──────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── Modal ────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: flex; align-items: flex-end;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px 20px 40px;
+}
+.modal-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  color: var(--amber-light);
+  margin-bottom: 20px;
+}
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+/* ── Toasts ───────────────────────────────────────────── */
+#toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--bg3);
+  border: 1px solid var(--amber);
+  color: var(--cream);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; }
+
+/* ── Loading ──────────────────────────────────────────── */
+.loading { text-align: center; padding: 40px; color: var(--text-dim); }
+
+/* ── Back button ──────────────────────────────────────── */
+.back-btn {
+  background: none; border: none;
+  color: var(--amber); cursor: pointer;
+  font-family: var(--font-body); font-size: 14px;
+  padding: 0; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Offline indicator ────────────────────────────────── */
+#offline-bar {
+  background: #3a1a00; border-bottom: 1px solid var(--border);
+  text-align: center; font-size: 12px; color: var(--amber);
+  padding: 6px; display: none;
+}
+body.offline #offline-bar { display: block; }
+</style>
+</head>
+<body>
+
+<div id="offline-bar">⚠ 離線模式 — 顯示快取資料</div>
+<div id="app">
+  <header>
+    <h1>釀造日誌</h1>
+    <p id="header-sub">載入中…</p>
+  </header>
+  <main id="main"></main>
+</div>
+
+<nav>
+  <button class="active" data-page="dashboard" onclick="navigate('dashboard')">
+    <span class="icon">🏺</span>今日
+  </button>
+  <button data-page="batches" onclick="navigate('batches')">
+    <span class="icon">📋</span>批次
+  </button>
+  <button data-page="new-batch" onclick="navigate('new-batch')">
+    <span class="icon">＋</span>新增
+  </button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbyTft0YIA7X8xUxJPwv0qBaDp-UxeuTNo-UlRAg9uLHVHLtRlUurIz4hyGALepBXu8/exec'; // 貼上你的 Apps Script Web App URL
+
+// ── Cache ─────────────────────────────────────────────────
+const Cache = {
+  get(key) { try { return JSON.parse(localStorage.getItem('kb_' + key)); } catch { return null; } },
+  set(key, val) { localStorage.setItem('kb_' + key, JSON.stringify(val)); },
+  keys: { batches: 'batches', batch: id => 'batch_' + id }
+};
+
+// ── API ───────────────────────────────────────────────────
+const API = {
+  async get(action, params = {}) {
+    if (!API_URL) return { ok: false, error: 'API_URL 未設定' };
+    const qs = new URLSearchParams({ action, ...params });
+    try {
+      const r = await fetch(`${API_URL}?${qs}`);
+      const json = await r.json();
+      return json;
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
+  async post(action, data) {
+    if (!API_URL) return { ok: false, error: 'API_URL 未設定' };
+    try {
+      const r = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action, data })
+      });
+      return await r.json();
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+};
+
+// ── Router ────────────────────────────────────────────────
+let currentPage = 'dashboard';
+let pageStack = [];
+
+function navigate(page, params = {}) {
+  currentPage = page;
+  document.querySelectorAll('nav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === page);
+  });
+  render(page, params);
+}
+
+function pushPage(page, params = {}) {
+  pageStack.push({ page: currentPage });
+  navigate(page, params);
+}
+
+function popPage() {
+  const prev = pageStack.pop();
+  if (prev) navigate(prev.page);
+  else navigate('dashboard');
+}
+
+// ── Render ────────────────────────────────────────────────
+async function render(page, params = {}) {
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="loading">載入中…</div>';
+  switch (page) {
+    case 'dashboard':   await renderDashboard(); break;
+    case 'batches':     await renderBatches(); break;
+    case 'new-batch':   renderNewBatch(params.template); break;
+    case 'batch-detail':await renderBatchDetail(params.id); break;
+    case 'add-log':     renderAddLog(params.batch_id, params.batch_name); break;
+    case 'add-f2':      renderAddF2(params.batch_id, params.batch_name); break;
+    case 'add-tasting': renderAddTasting(params.batch_id, params.batch_name); break;
+    case 'add-adjustment': renderAddAdjustment(params.batch_id, params.batch_name); break;
+  }
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+async function renderDashboard() {
+  const main = document.getElementById('main');
+  let batches = Cache.get('batches') || [];
+
+  if (navigator.onLine) {
+    const res = await API.get('getBatches');
+    if (res.ok) { batches = res.data; Cache.set('batches', batches); }
+  }
+
+  const active = batches.filter(b => b.status === 'f1' || b.status === 'f2');
+  document.getElementById('header-sub').textContent =
+    `${active.length} 批進行中 · 共 ${batches.length} 批`;
+
+  if (active.length === 0) {
+    main.innerHTML = `
+      <div class="empty">
+        <span class="icon">🫙</span>
+        尚無進行中的批次<br>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="navigate('new-batch')">開始第一批</button>
+      </div>`;
+    return;
+  }
+
+  main.innerHTML = `<div class="section-title">進行中</div>` +
+    active.map(b => batchCard(b, true)).join('');
+}
+
+// ── Batch List ────────────────────────────────────────────
+async function renderBatches() {
+  const main = document.getElementById('main');
+  let batches = Cache.get('batches') || [];
+
+  if (navigator.onLine) {
+    const res = await API.get('getBatches');
+    if (res.ok) { batches = res.data; Cache.set('batches', batches); }
+  }
+
+  if (batches.length === 0) {
+    main.innerHTML = `<div class="empty"><span class="icon">📋</span>尚無批次紀錄</div>`;
+    return;
+  }
+
+  const groups = { f1: [], f2: [], done: [], failed: [] };
+  batches.forEach(b => { if (groups[b.status]) groups[b.status].push(b); else groups.done.push(b); });
+
+  const labels = { f1: '一次發酵', f2: '二次發酵', done: '完成', failed: '失敗' };
+  let html = '';
+  for (const [status, items] of Object.entries(groups)) {
+    if (!items.length) continue;
+    html += `<div class="section-title">${labels[status]} (${items.length})</div>`;
+    html += items.map(b => batchCard(b)).join('');
+  }
+  main.innerHTML = html;
+}
+
+function batchCard(b, showCountdown = false) {
+  const badge = `<span class="badge badge-${b.status}">${statusLabel(b.status)}</span>`;
+  let meta = `開始：${fmtDate(b.start_date)}`;
+  if (b.tea_type) meta += ` · ${b.tea_type}`;
+
+  let countdown = '';
+  if (showCountdown && (b.status === 'f1' || b.status === 'f2') && b.start_date && b.f1_target_days) {
+    const start = new Date(b.start_date);
+    const end = new Date(start);
+    end.setDate(end.getDate() + Number(b.f1_target_days));
+    const daysLeft = Math.ceil((end - Date.now()) / 86400000);
+    countdown = daysLeft > 0
+      ? `<span class="countdown">還剩 ${daysLeft} 天</span>`
+      : `<span class="countdown" style="color:var(--red)">已到期</span>`;
+  }
+
+  return `<div class="card" onclick="pushPage('batch-detail',{id:'${b.id}'})">
+    <div class="card-row">
+      <div class="card-title">${esc(b.name)}</div>
+      ${badge}
+    </div>
+    <div class="card-row" style="margin-top:6px">
+      <div class="card-meta">${meta}</div>
+      ${countdown}
+    </div>
+  </div>`;
+}
+
+// ── Batch Detail ──────────────────────────────────────────
+async function renderBatchDetail(id) {
+  const main = document.getElementById('main');
+  let batch = null, logs = [], f2 = [], tastings = [], adjustments = [];
+
+  if (navigator.onLine) {
+    const [rb, rl, rf, rt, ra] = await Promise.all([
+      API.get('getBatch', { id }),
+      API.get('getF1Logs', { batch_id: id }),
+      API.get('getF2', { batch_id: id }),
+      API.get('getTastings', { batch_id: id }),
+      API.get('getAdjustments', { batch_id: id }),
+    ]);
+    if (rb.ok) { batch = rb.data; Cache.set('batch_' + id, { batch, logs: rl.data, f2: rf.data, tastings: rt.data, adjustments: ra.data }); }
+    if (rl.ok) logs = rl.data;
+    if (rf.ok) f2 = rf.data;
+    if (rt.ok) tastings = rt.data;
+    if (ra.ok) adjustments = ra.data;
+  } else {
+    const cached = Cache.get('batch_' + id);
+    if (cached) { batch = cached.batch; logs = cached.logs || []; f2 = cached.f2 || []; tastings = cached.tastings || []; adjustments = cached.adjustments || []; }
+  }
+
+  if (!batch) { main.innerHTML = `<div class="empty">找不到批次</div>`; return; }
+
+  const sortedLogs = [...logs].sort((a, b) => Number(a.day_num) - Number(b.day_num));
+  const sortedF2 = [...f2].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="font-family:var(--font-title);font-size:22px;color:var(--cream)">${esc(batch.name)}</div>
+        <div style="margin-top:4px"><span class="badge badge-${batch.status}">${statusLabel(batch.status)}</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        ${batch.status !== 'done' && batch.status !== 'failed' ? `
+          <button class="btn btn-secondary btn-sm" onclick="navigate('new-batch',{template:'${id}'})">複製配方</button>
+          <button class="btn btn-secondary btn-sm" onclick="changeStatus('${id}')">更新狀態</button>
+        ` : `
+          <button class="btn btn-secondary btn-sm" onclick="navigate('new-batch',{template:'${id}'})">複製配方</button>
+        `}
+      </div>
+    </div>
+
+    <!-- 配方 -->
+    <div class="detail-section">
+      <div class="detail-section-header">配方</div>
+      <div class="detail-section-body">
+        <div class="recipe-grid">
+          ${recipeField('茶葉', batch.tea_type)}
+          ${recipeField('糖', batch.sugar_type)}
+          ${recipeField('茶量', batch.tea_amount ? batch.tea_amount + ' g' : '')}
+          ${recipeField('糖量', batch.sugar_amount ? batch.sugar_amount + ' g' : '')}
+          ${recipeField('水量', batch.water_amount ? batch.water_amount + ' ml' : '')}
+          ${recipeField('SCOBY', batch.scoby_weight ? batch.scoby_weight + ' g' : '')}
+          ${recipeField('Starter', batch.starter_ratio ? batch.starter_ratio + '%' : '')}
+          ${recipeField('目標溫度', batch.target_temp ? batch.target_temp + ' °C' : '')}
+          ${recipeField('一發目標', batch.f1_target_days ? batch.f1_target_days + ' 天' : '')}
+          ${recipeField('開始日期', fmtDate(batch.start_date))}
+        </div>
+        ${batch.notes ? `<div style="margin-top:12px;font-size:13px;color:var(--text-dim);border-top:1px solid var(--border);padding-top:10px">${esc(batch.notes)}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- 一發日誌 -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        一次發酵日誌
+        ${batch.status === 'f1' ? `<button class="btn btn-primary btn-sm" onclick="pushPage('add-log',{batch_id:'${id}',batch_name:'${esc(batch.name)}'})">+ 新增</button>` : ''}
+      </div>
+      <div class="detail-section-body">
+        ${sortedLogs.length === 0
+          ? '<div class="empty" style="padding:20px 0">尚無日誌</div>'
+          : `<div class="timeline">${sortedLogs.map(logItem).join('')}</div>`}
+      </div>
+    </div>
+
+    <!-- 二發 -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        二次發酵
+        ${batch.status === 'f1' || batch.status === 'f2' ? `<button class="btn btn-primary btn-sm" onclick="pushPage('add-f2',{batch_id:'${id}',batch_name:'${esc(batch.name)}'})">+ 新增</button>` : ''}
+      </div>
+      <div class="detail-section-body">
+        ${sortedF2.length === 0
+          ? '<div class="empty" style="padding:20px 0">尚無二發紀錄</div>'
+          : sortedF2.map(f2Item).join('')}
+      </div>
+    </div>
+
+    <!-- 風味評分 -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        風味評分
+        <button class="btn btn-primary btn-sm" onclick="pushPage('add-tasting',{batch_id:'${id}',batch_name:'${esc(batch.name)}'})">+ 新增</button>
+      </div>
+      <div class="detail-section-body">
+        ${tastings.length === 0
+          ? '<div class="empty" style="padding:20px 0">尚無品評紀錄</div>'
+          : tastings.map(tastingItem).join('')}
+      </div>
+    </div>
+
+    <!-- 調整紀錄 -->
+    <div class="detail-section">
+      <div class="detail-section-header">
+        失敗與調整
+        <button class="btn btn-secondary btn-sm" onclick="pushPage('add-adjustment',{batch_id:'${id}',batch_name:'${esc(batch.name)}'})">+ 新增</button>
+      </div>
+      <div class="detail-section-body">
+        ${adjustments.length === 0
+          ? '<div class="empty" style="padding:20px 0">尚無調整紀錄</div>'
+          : adjustments.map(adjustmentItem).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function recipeField(label, value) {
+  if (!value) return '';
+  return `<div class="recipe-item"><div class="rl">${label}</div><div class="rv">${esc(String(value))}</div></div>`;
+}
+
+function logItem(l) {
+  return `<div class="timeline-item">
+    <div class="timeline-day">第 ${l.day_num} 天 · ${fmtDate(l.date)}</div>
+    ${l.ph ? `<div class="timeline-meta">pH ${l.ph}</div>` : ''}
+    ${l.taste_notes ? `<div style="font-size:13px;margin-top:4px">🍋 ${esc(l.taste_notes)}</div>` : ''}
+    ${l.appearance_notes ? `<div style="font-size:13px">👁 ${esc(l.appearance_notes)}</div>` : ''}
+    ${l.aroma_notes ? `<div style="font-size:13px">👃 ${esc(l.aroma_notes)}</div>` : ''}
+  </div>`;
+}
+
+function f2Item(f) {
+  return `<div class="card" style="cursor:default">
+    <div class="card-row">
+      <div style="font-size:13px;color:var(--cream)">開始：${fmtDate(f.start_date)}</div>
+      <span class="badge ${f.status === 'done' ? 'badge-done' : 'badge-f2'}">${f.status === 'done' ? '完成' : '進行中'}</span>
+    </div>
+    ${f.ingredients ? `<div style="font-size:13px;margin-top:6px">加料：${esc(f.ingredients)}</div>` : ''}
+    ${f.bottle_count ? `<div style="font-size:12px;color:var(--text-dim)">瓶數：${f.bottle_count} · 目標：${f.target_days} 天</div>` : ''}
+    ${f.carbonation_notes ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${esc(f.carbonation_notes)}</div>` : ''}
+  </div>`;
+}
+
+function tastingItem(t) {
+  const cats = [
+    { label: '酸度', val: t.acidity },
+    { label: '甜度', val: t.sweetness },
+    { label: '碳酸感', val: t.carbonation },
+    { label: '整體', val: t.overall },
+  ];
+  return `<div class="card" style="cursor:default;margin-bottom:10px">
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${fmtDate(t.tasting_date)}</div>
+    ${cats.map(c => `<div class="star-row">
+      <span class="star-label">${c.label}</span>
+      <div class="stars">${[1,2,3,4,5].map(i => `<span class="star ${i <= Number(c.val) ? 'on' : ''}">★</span>`).join('')}</div>
+    </div>`).join('')}
+    ${t.notes ? `<div style="font-size:13px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">${esc(t.notes)}</div>` : ''}
+    ${t.would_repeat == 'true' || t.would_repeat === true ? `<div style="font-size:12px;color:var(--green);margin-top:4px">✓ 值得重做</div>` : ''}
+  </div>`;
+}
+
+function adjustmentItem(a) {
+  return `<div class="card" style="cursor:default;margin-bottom:10px">
+    ${a.issue ? `<div style="font-size:13px;color:var(--red)">問題：${esc(a.issue)}</div>` : ''}
+    ${a.adjustment_made ? `<div style="font-size:13px;margin-top:6px">調整：${esc(a.adjustment_made)}</div>` : ''}
+    ${a.next_time_notes ? `<div style="font-size:12px;color:var(--amber);margin-top:6px">下次：${esc(a.next_time_notes)}</div>` : ''}
+  </div>`;
+}
+
+// ── New Batch Form ────────────────────────────────────────
+async function renderNewBatch(templateId) {
+  const main = document.getElementById('main');
+  let tpl = {};
+
+  if (templateId && navigator.onLine) {
+    const res = await API.get('getBatch', { id: templateId });
+    if (res.ok && res.data) {
+      const src = res.data;
+      tpl = {
+        tea_type: src.tea_type, sugar_type: src.sugar_type,
+        tea_amount: src.tea_amount, sugar_amount: src.sugar_amount,
+        water_amount: src.water_amount, scoby_weight: src.scoby_weight,
+        starter_ratio: src.starter_ratio, target_temp: src.target_temp,
+        f1_target_days: src.f1_target_days, notes: src.notes
+      };
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div class="section-title">${templateId ? '複製配方' : '新增批次'}</div>
+    <div class="form-group">
+      <label>批次名稱</label>
+      <input id="f-name" type="text" placeholder="例：鐵觀音 #3">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>茶葉種類</label>
+        <input id="f-tea_type" value="${esc(tpl.tea_type||'')}" placeholder="紅茶、綠茶…">
+      </div>
+      <div class="form-group">
+        <label>糖的種類</label>
+        <input id="f-sugar_type" value="${esc(tpl.sugar_type||'')}" placeholder="白糖、蜂蜜…">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>茶量 (g)</label>
+        <input id="f-tea_amount" type="number" value="${tpl.tea_amount||''}">
+      </div>
+      <div class="form-group">
+        <label>糖量 (g)</label>
+        <input id="f-sugar_amount" type="number" value="${tpl.sugar_amount||''}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>水量 (ml)</label>
+        <input id="f-water_amount" type="number" value="${tpl.water_amount||''}">
+      </div>
+      <div class="form-group">
+        <label>SCOBY (g)</label>
+        <input id="f-scoby_weight" type="number" value="${tpl.scoby_weight||''}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Starter 比例 (%)</label>
+        <input id="f-starter_ratio" type="number" value="${tpl.starter_ratio||'10'}">
+      </div>
+      <div class="form-group">
+        <label>目標溫度 (°C)</label>
+        <input id="f-target_temp" type="number" value="${tpl.target_temp||'25'}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>一發目標天數</label>
+        <input id="f-f1_target_days" type="number" value="${tpl.f1_target_days||'7'}">
+      </div>
+      <div class="form-group">
+        <label>開始日期</label>
+        <input id="f-start_date" type="date" value="${today}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備註</label>
+      <textarea id="f-notes" placeholder="任何補充…">${esc(tpl.notes||'')}</textarea>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitNewBatch()">建立批次</button>
+  `;
+}
+
+async function submitNewBatch() {
+  const get = id => document.getElementById('f-' + id)?.value?.trim();
+  const data = {
+    name: get('name'), tea_type: get('tea_type'), sugar_type: get('sugar_type'),
+    tea_amount: get('tea_amount'), sugar_amount: get('sugar_amount'),
+    water_amount: get('water_amount'), scoby_weight: get('scoby_weight'),
+    starter_ratio: get('starter_ratio'), target_temp: get('target_temp'),
+    f1_target_days: get('f1_target_days'), start_date: get('start_date'),
+    notes: get('notes')
+  };
+  if (!data.name) { showToast('請輸入批次名稱'); return; }
+
+  const res = await API.post('createBatch', data);
+  if (res.ok) {
+    Cache.set('batches', null);
+    showToast('批次已建立');
+    navigate('batches');
+  } else {
+    showToast('建立失敗：' + res.error);
+  }
+}
+
+// ── Add F1 Log ────────────────────────────────────────────
+function renderAddLog(batch_id, batch_name) {
+  const main = document.getElementById('main');
+  const today = new Date().toISOString().slice(0, 10);
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div class="section-title">新增日誌 — ${esc(batch_name)}</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>日期</label>
+        <input id="l-date" type="date" value="${today}">
+      </div>
+      <div class="form-group">
+        <label>第幾天</label>
+        <input id="l-day_num" type="number" min="1" placeholder="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>pH 值</label>
+      <input id="l-ph" type="number" step="0.1" min="0" max="14" placeholder="3.5">
+    </div>
+    <div class="form-group">
+      <label>🍋 味道</label>
+      <textarea id="l-taste" placeholder="酸度、甜度、尾韻…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>👁 外觀</label>
+      <textarea id="l-appearance" placeholder="顏色、透明度、SCOBY 厚度…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>👃 氣味</label>
+      <textarea id="l-aroma" placeholder="酵母味、果香、酸味…"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitLog('${batch_id}')">儲存日誌</button>
+  `;
+}
+
+async function submitLog(batch_id) {
+  const g = id => document.getElementById('l-' + id)?.value?.trim();
+  const data = {
+    batch_id, date: g('date'), day_num: g('day_num'),
+    ph: g('ph'), taste_notes: g('taste'), appearance_notes: g('appearance'), aroma_notes: g('aroma')
+  };
+  if (!data.day_num) { showToast('請填入天數'); return; }
+  const res = await API.post('createF1Log', data);
+  if (res.ok) { showToast('日誌已儲存'); popPage(); }
+  else showToast('儲存失敗：' + res.error);
+}
+
+// ── Add F2 ────────────────────────────────────────────────
+function renderAddF2(batch_id, batch_name) {
+  const main = document.getElementById('main');
+  const today = new Date().toISOString().slice(0, 10);
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div class="section-title">新增二發 — ${esc(batch_name)}</div>
+    <div class="form-group">
+      <label>開始日期</label>
+      <input id="f2-start_date" type="date" value="${today}">
+    </div>
+    <div class="form-group">
+      <label>加入材料</label>
+      <input id="f2-ingredients" placeholder="薑、檸檬、藍莓…">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>瓶數</label>
+        <input id="f2-bottle_count" type="number" placeholder="4">
+      </div>
+      <div class="form-group">
+        <label>目標天數</label>
+        <input id="f2-target_days" type="number" placeholder="3">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>碳酸化備註</label>
+      <textarea id="f2-carbonation_notes" placeholder="打嗝計畫、預計壓力…"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitF2('${batch_id}')">儲存二發</button>
+  `;
+}
+
+async function submitF2(batch_id) {
+  const g = id => document.getElementById('f2-' + id)?.value?.trim();
+  const data = {
+    batch_id, start_date: g('start_date'), ingredients: g('ingredients'),
+    bottle_count: g('bottle_count'), target_days: g('target_days'),
+    carbonation_notes: g('carbonation_notes')
+  };
+  const res = await API.post('createF2', data);
+  if (res.ok) {
+    await API.post('updateBatch', { id: batch_id, status: 'f2' });
+    Cache.set('batches', null);
+    showToast('二發已儲存');
+    popPage();
+  } else showToast('儲存失敗：' + res.error);
+}
+
+// ── Add Tasting ───────────────────────────────────────────
+function renderAddTasting(batch_id, batch_name) {
+  const main = document.getElementById('main');
+  const today = new Date().toISOString().slice(0, 10);
+  const ratings = { acidity: 0, sweetness: 0, carbonation: 0, overall: 0 };
+
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div class="section-title">風味評分 — ${esc(batch_name)}</div>
+    <div class="form-group">
+      <label>品評日期</label>
+      <input id="t-date" type="date" value="${today}">
+    </div>
+    <div class="form-group">
+      <label>評分</label>
+      ${['acidity:酸度','sweetness:甜度','carbonation:碳酸感','overall:整體'].map(s => {
+        const [id, label] = s.split(':');
+        return `<div class="star-row" style="margin-bottom:10px">
+          <span class="star-label">${label}</span>
+          <div class="stars" id="stars-${id}">
+            ${[1,2,3,4,5].map(i => `<span class="star" onclick="setRating('${id}',${i})">★</span>`).join('')}
+          </div>
+          <input type="hidden" id="r-${id}" value="0">
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="form-group">
+      <label>品評筆記</label>
+      <textarea id="t-notes" placeholder="風味描述、改進建議…"></textarea>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="t-repeat" style="width:auto">
+        值得重做
+      </label>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitTasting('${batch_id}')">儲存評分</button>
+  `;
+}
+
+function setRating(field, val) {
+  document.getElementById('r-' + field).value = val;
+  const stars = document.querySelectorAll(`#stars-${field} .star`);
+  stars.forEach((s, i) => s.classList.toggle('on', i < val));
+}
+
+async function submitTasting(batch_id) {
+  const g = id => document.getElementById('t-' + id)?.value?.trim();
+  const r = id => document.getElementById('r-' + id)?.value;
+  const data = {
+    batch_id, tasting_date: g('date'),
+    acidity: r('acidity'), sweetness: r('sweetness'),
+    carbonation: r('carbonation'), overall: r('overall'),
+    notes: g('notes'),
+    would_repeat: document.getElementById('t-repeat')?.checked
+  };
+  const res = await API.post('createTasting', data);
+  if (res.ok) { showToast('評分已儲存'); popPage(); }
+  else showToast('儲存失敗：' + res.error);
+}
+
+// ── Add Adjustment ────────────────────────────────────────
+function renderAddAdjustment(batch_id, batch_name) {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <button class="back-btn" onclick="popPage()">← 返回</button>
+    <div class="section-title">調整記錄 — ${esc(batch_name)}</div>
+    <div class="form-group">
+      <label>問題描述</label>
+      <textarea id="a-issue" placeholder="發生了什麼問題？"></textarea>
+    </div>
+    <div class="form-group">
+      <label>本次調整</label>
+      <textarea id="a-adjustment" placeholder="這次做了什麼改變？"></textarea>
+    </div>
+    <div class="form-group">
+      <label>下次備忘</label>
+      <textarea id="a-next" placeholder="下次應該記住什麼？"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="submitAdjustment('${batch_id}')">儲存紀錄</button>
+  `;
+}
+
+async function submitAdjustment(batch_id) {
+  const g = id => document.getElementById('a-' + id)?.value?.trim();
+  const data = { batch_id, issue: g('issue'), adjustment_made: g('adjustment'), next_time_notes: g('next') };
+  const res = await API.post('createAdjustment', data);
+  if (res.ok) { showToast('已儲存'); popPage(); }
+  else showToast('儲存失敗：' + res.error);
+}
+
+// ── Status change ─────────────────────────────────────────
+async function changeStatus(id) {
+  const statuses = ['f1','f2','done','failed'];
+  const labels = { f1:'一發中', f2:'二發中', done:'完成', failed:'失敗' };
+  const choice = prompt('更新狀態：\n' + statuses.map(s => `${s} = ${labels[s]}`).join('\n') + '\n\n輸入狀態代碼：');
+  if (!choice || !statuses.includes(choice)) return;
+  const res = await API.post('updateBatch', { id, status: choice });
+  if (res.ok) {
+    Cache.set('batches', null);
+    showToast('狀態已更新');
+    pushPage('batch-detail', { id });
+  }
+}
+
+// ── Utils ─────────────────────────────────────────────────
+function statusLabel(s) {
+  return { f1: '一發', f2: '二發', done: '完成', failed: '失敗' }[s] || s;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const s = String(d).slice(0, 10);
+  if (!s || s === 'undefined') return '';
+  const [y, m, day] = s.split('-');
+  return `${y}/${m}/${day}`;
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Offline detection ─────────────────────────────────────
+window.addEventListener('online',  () => document.body.classList.remove('offline'));
+window.addEventListener('offline', () => document.body.classList.add('offline'));
+if (!navigator.onLine) document.body.classList.add('offline');
+
+// ── Init ──────────────────────────────────────────────────
+navigate('dashboard');
+</script>
+
+<script>
+// ── Service Worker registration ───────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
